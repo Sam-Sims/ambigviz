@@ -124,6 +124,7 @@ pub struct Ambig<'a> {
     depth_threshold: u32,
     minor_depth_treshold: u32,
     strand_bias_threshold: f64,
+    bed: bool,
 }
 
 impl<'a> Ambig<'a> {
@@ -141,6 +142,7 @@ impl<'a> Ambig<'a> {
         depth_threshold: u32,
         minor_depth_treshold: u32,
         strand_bias_threshold: f64,
+        bed: bool
     ) -> Self {
         let (start, stop) = get_start_stop(start, stop);
         Self {
@@ -157,6 +159,7 @@ impl<'a> Ambig<'a> {
             depth_threshold,
             minor_depth_treshold,
             strand_bias_threshold,
+            bed,
         }
     }
 
@@ -415,6 +418,14 @@ impl<'a> Ambig<'a> {
         filtered_pileup_counts
     }
 
+    fn output_bed(&self, tid: &String, pos_to_plot: BTreeMap<u32, BTreeMap<char, f64>>) {
+        let out_name = format!("{}_{}.bed", tid, self.output);
+        let mut file = File::create(out_name).expect("Failed to create file");
+        for (pos, _) in pos_to_plot {
+            writeln!(file, "{}\t{}\t{}\t{}", tid, pos, pos + 1, tid).expect("Failed to write to file");
+        }
+    }
+
     pub fn run(&self) {
         let mut bam = read_bam(self.input);
         let tids = get_tids(self.chrom, Some(bam.header()));
@@ -427,6 +438,9 @@ impl<'a> Ambig<'a> {
             let filtered_pileup_counts = self.produce_pileup(&mut bam);
             self.plot(&filtered_pileup_counts, tid);
             //self.output_tsv(&pos_to_plot);
+            if self.bed {
+                self.output_bed(tid, filtered_pileup_counts)
+            }
         }
     }
 }
@@ -510,6 +524,7 @@ mod tests {
             1,
             1,
             0.0,
+            false,
         );
         let pos_to_plot = ambig.produce_pileup(&mut bam);
         let expected_pos = BTreeMap::new();
@@ -533,6 +548,7 @@ mod tests {
             1,
             1,
             0.0,
+            false,
         );
         let pos_to_plot = ambig.produce_pileup(&mut bam);
 
@@ -563,7 +579,8 @@ mod tests {
             1,
             1,
             1,
-            0.0
+            0.0,
+            false,
         );
         let pos_to_plot = ambig.produce_pileup(&mut bam);
         let expected_pos = {
@@ -594,7 +611,8 @@ mod tests {
             1,
             1,
             1,
-            0.0
+            0.0,
+            false
         );
         let pos_to_plot = ambig.produce_pileup(&mut bam);
         let expected_pos = BTreeMap::new();

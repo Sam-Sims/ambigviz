@@ -59,6 +59,8 @@ or co-infection and flag regions of interest for further investigation.
 
 Regions follow the samtools format: `chr:start-end` and all positions are 1-based.
 
+The `--bed` option allows you to output identified ambiguous positions to a bed file.
+
 You can also plot the depth of a BAM file using the depth command.
 
 ```bash
@@ -66,6 +68,12 @@ ambigviz depth <path_to_bam> <region> [options]
 ```
 
 ### Options:
+
+### Output
+
+`-o, --output <output>`
+
+This option will set the output file name. Default is to output the chromasome name.
 
 #### Threshold
 
@@ -114,6 +122,12 @@ means that at least 10% of the depth must come from either strand. For example i
 of A and 20 reads of C, there must be at least 2 from each strand in C in order for the position to be flagged as
 ambiguous and included in the plot. The maximum value is 0.5, requiring that there is an equal amount of depth from each
 strand. Setting to 0 will disable this filter.
+
+#### Bed
+
+`--bed`
+
+This option will output the identified ambiguous positions to a bed file. The default is to not output.
 
 #### Labels
 

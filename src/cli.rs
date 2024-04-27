@@ -70,6 +70,10 @@ pub enum Command {
         // Do not include labels
         #[arg(long = "no-label")]
         no_label: bool,
+
+        // Output bed file instead of plot
+        #[arg(long = "bed")]
+        bed: bool,
     },
 }
 

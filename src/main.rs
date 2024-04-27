@@ -34,6 +34,7 @@ fn main() {
             depth_threshold,
             minor_depth_threshold,
             strand_bias_threshold,
+            bed
         } => {
             if let Some(region) = region {
                 let region_string = cli::parse_region(&region);
@@ -52,6 +53,7 @@ fn main() {
                     depth_threshold,
                     minor_depth_threshold,
                     strand_bias_threshold,
+                    bed
                 );
                 _plotter.run();
             } else {
@@ -70,6 +72,7 @@ fn main() {
                     depth_threshold,
                     minor_depth_threshold,
                     strand_bias_threshold,
+                    bed
                 );
                 ambig_plotter.run();
             }
