@@ -73,7 +73,7 @@ ambigviz depth <path_to_bam> <region> [options]
 
 `-o, --output <output>`
 
-This option will set the output file name. Default is to output the chromasome name.
+This option will set the output file name in the format `<chromosome>_<output>` as a BAM file can contain multiple chromosomes and would otherwise be overwritten. Default is to output `<chromosome>_ambig`. 
 
 #### Threshold
 
