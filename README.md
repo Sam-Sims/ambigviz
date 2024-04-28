@@ -1,7 +1,7 @@
 # Ambigviz
 
 ambigviz is a tool for rapidly scanning and visualising ambiguous/mixed bases at given positions in a
-BAM file. It was initially written to examine intrahost diversity / co-infection in SARS-CoV-2 samples however it can be used for any BAM file (and scales well thanks to Rust). It uses strict filtering options by default to avoid sequencing artifacts and contamination/sequencing errors, The idea is to rapidly produce plots that are "presentation-ready" for further communication and discussion.
+BAM file. It was initially written to examine intrahost diversity / co-infection in SARS-CoV-2 samples however it can be used for any BAM file (and scales well thanks to Rust). It uses strict filtering options by default to avoid sequencing artifacts and contamination/sequencing errors, The idea is to rapidly produce plots that are "presentation-ready".
 
 It provides a simple command line interface and requires at minimum a BAM file only.
 
