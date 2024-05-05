@@ -1,3 +1,8 @@
+[![Release](https://github.com/Sam-Sims/ambigviz/actions/workflows/release.yaml/badge.svg)](https://github.com/Sam-Sims/Kractor/actions/workflows/release.yaml)
+![GitHub release (with filter)](https://img.shields.io/github/v/release/sam-sims/ambigviz)
+![crates.io](https://img.shields.io/crates/v/ambigviz
+)
+
 # Ambigviz
 
 ambigviz is a tool for rapidly scanning and visualising ambiguous/mixed bases at given positions in a
@@ -8,6 +13,10 @@ It provides a simple command line interface and requires at minimum a BAM file o
 ![example](img/plot.png)
 
 ## Installation
+
+### Binaries:
+
+Precompiled binaries for Linux, MacOS and Windows are attached to the latest release [0.1.0](https://github.com/Sam-Sims/ambigviz/releases/tag/v0.1.0)
 
 ### Cargo:
 
@@ -91,7 +100,7 @@ like ONT.
 
 #### Depth
 
-`-D, --depth <depth>`
+`-d, --depth <depth>`
 
 This option will set the minimum total depth for a position to be included in the plot. Default is 100
 
@@ -118,7 +127,7 @@ of A and 20 reads of C, there must be at least 2 from each strand in C in order 
 ambiguous and included in the plot. The maximum value is 0.5, requiring that there is an equal amount of depth from each
 strand. Setting to 0 will disable this filter.
 
-#### Bed
+#### Bed file
 
 `--bed`
 
