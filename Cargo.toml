@@ -2,12 +2,20 @@
 name = "ambigviz"
 version = "0.1.0"
 edition = "2021"
+authors = ["Samuel Sims"]
+description = "Identify and plot ambiguous nucleotide bases at given positions from a BAM file."
+readme = "README.md"
+repository = "https://github.com/Sam-Sims/ambigviz"
+license = "MIT"
+keywords = ["bioinformatics", "biology", "genomics", "visualization", "bam"]
+categories = ["command-line-utilities", "science"]
+documentation = "https://docs.rs/crate/ambigviz/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 plotly = { version = "0.8.4", features = ["kaleido"] }
 clap = { version = "4.3.19", features = ["derive"] }
-rust-htslib = "*"
+rust-htslib = "0.46.0"
 rstest = "0.18.2"
 tempfile = "3.8.1"
