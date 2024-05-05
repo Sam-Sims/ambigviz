@@ -40,7 +40,12 @@ pub enum Command {
         output: String,
 
         // Threshold for ambigous bases
-        #[arg(short = 't', long = "threshold", default_value = "0.1", value_parser(check_threshold_valid))]
+        #[arg(
+            short = 't',
+            long = "threshold",
+            default_value = "0.1",
+            value_parser(check_threshold_valid)
+        )]
         threshold: f64,
 
         // Threshold for base quality
@@ -52,15 +57,20 @@ pub enum Command {
         map_quality_threshold: u8,
 
         // Threshold for total depth
-        #[arg(short = 'D', long = "--depth", default_value = "100")]
+        #[arg(short = 'd', long = "--depth", default_value = "100")]
         depth_threshold: u32,
 
         // Threshold for depth of minor allele
-        #[arg(short = 'd', long = "--minor-depth", default_value = "20")]
-        minor_depth_threshold: u32,
+        // #[arg(short = 'd', long = "--minor-depth", default_value = "20")]
+        // minor_depth_threshold: u32,
 
         // Threshold for strand bias
-        #[arg(short = 's', long = "--strand-bias", default_value = "0.1", value_parser(check_threshold_valid))]
+        #[arg(
+            short = 's',
+            long = "--strand-bias",
+            default_value = "0.1",
+            value_parser(check_threshold_valid)
+        )]
         strand_bias_threshold: f64,
 
         // Do not include indels

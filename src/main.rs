@@ -1,5 +1,7 @@
-pub use crate::cli::Cli;
 use clap::Parser;
+
+pub use crate::cli::Cli;
+
 mod cli;
 pub mod commands;
 
@@ -32,9 +34,8 @@ fn main() {
             base_quality_threshold,
             map_quality_threshold,
             depth_threshold,
-            minor_depth_threshold,
             strand_bias_threshold,
-            bed
+            bed,
         } => {
             if let Some(region) = region {
                 let region_string = cli::parse_region(&region);
@@ -51,9 +52,8 @@ fn main() {
                     base_quality_threshold,
                     map_quality_threshold,
                     depth_threshold,
-                    minor_depth_threshold,
                     strand_bias_threshold,
-                    bed
+                    bed,
                 );
                 _plotter.run();
             } else {
@@ -70,9 +70,8 @@ fn main() {
                     base_quality_threshold,
                     map_quality_threshold,
                     depth_threshold,
-                    minor_depth_threshold,
                     strand_bias_threshold,
-                    bed
+                    bed,
                 );
                 ambig_plotter.run();
             }

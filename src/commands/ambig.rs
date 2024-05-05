@@ -3,9 +3,9 @@ use std::fs::File;
 use std::io::Write;
 
 use plotly::{
-    Bar,
     common::{Marker, TextAnchor, TextPosition, Title},
-    ImageFormat, layout::{Axis, AxisType::Category, BarMode},
+    layout::{Axis, AxisType::Category, BarMode},
+    Bar, ImageFormat,
 };
 use rust_htslib::{bam, bam::Read};
 
@@ -46,10 +46,10 @@ impl Pileup {
             ('-', self.del.0),
             ('+', self.ins.0),
         ]
-            .iter()
-            .cloned() // Clone the values to avoid borrowing issues
-            .max_by_key(|&(_, i)| i)
-            .expect("No bases found in base_counts.");
+        .iter()
+        .cloned() // Clone the values to avoid borrowing issues
+        .max_by_key(|&(_, i)| i)
+        .expect("No bases found in base_counts.");
         major_variant
     }
 
@@ -122,7 +122,6 @@ pub struct Ambig<'a> {
     base_quality_threshold: u8,
     map_quality_threshold: u8,
     depth_threshold: u32,
-    minor_depth_treshold: u32,
     strand_bias_threshold: f64,
     bed: bool,
 }
@@ -140,9 +139,8 @@ impl<'a> Ambig<'a> {
         base_quality_threshold: u8,
         map_quality_threshold: u8,
         depth_threshold: u32,
-        minor_depth_treshold: u32,
         strand_bias_threshold: f64,
-        bed: bool
+        bed: bool,
     ) -> Self {
         let (start, stop) = get_start_stop(start, stop);
         Self {
@@ -157,7 +155,6 @@ impl<'a> Ambig<'a> {
             base_quality_threshold,
             map_quality_threshold,
             depth_threshold,
-            minor_depth_treshold,
             strand_bias_threshold,
             bed,
         }
@@ -252,10 +249,6 @@ impl<'a> Ambig<'a> {
         // First find the major variant (base with most reads)
         let major_variant = pileup.get_major_variant();
 
-        // check the sum of minor variants is greater than minor_depth_threshold
-        if total_count - pileup.get_base_count(major_variant) < self.minor_depth_treshold {
-            return global_base_counts;
-        }
         // check the strand ratio for each base
         let strand_ratios: BTreeMap<char, f64> = [
             ('A', pileup.get_strand_ratio('A')),
@@ -265,15 +258,17 @@ impl<'a> Ambig<'a> {
             ('-', pileup.get_strand_ratio('-')),
             ('+', pileup.get_strand_ratio('+')),
         ]
-            .iter()
-            .cloned()
-            .collect();
+        .iter()
+        .cloned()
+        .collect();
         for (base, ratio) in strand_ratios {
             // if ratio == -1.0 then there were no reads for that base
             if ratio == -1.0 {
                 continue;
             }
-            if base != major_variant && (ratio < self.strand_bias_threshold || ratio > 1.0-self.strand_bias_threshold){
+            if base != major_variant
+                && (ratio < self.strand_bias_threshold || ratio > 1.0 - self.strand_bias_threshold)
+            {
                 return global_base_counts;
             }
         }
@@ -287,11 +282,11 @@ impl<'a> Ambig<'a> {
             ('-', pileup.del.0 as f64 / total_count as f64),
             ('+', pileup.ins.0 as f64 / total_count as f64),
         ]
-            .iter()
-            .cloned()
-            .filter(|(_, percent)| *percent > 0.0)
-            .map(|(base, percent)| (base, (percent * 10000.0).round() / 10000.0))
-            .collect();
+        .iter()
+        .cloned()
+        .filter(|(_, percent)| *percent > 0.0)
+        .map(|(base, percent)| (base, (percent * 10000.0).round() / 10000.0))
+        .collect();
 
         // Find the proportion of minor variants
         let total_minor_proportion = percent_base_counts
@@ -348,9 +343,9 @@ impl<'a> Ambig<'a> {
                 } else if alignment.is_del() {
                     pileup_struct.del.0 += 1;
                     if orientation == "+" {
-                        pileup_struct.del.1.0 += 1;
+                        pileup_struct.del.1 .0 += 1;
                     } else {
-                        pileup_struct.del.1.1 += 1;
+                        pileup_struct.del.1 .1 += 1;
                     }
                 }
                 // if read passes qc, is not a deletion or a refskip then we have a real base
@@ -360,33 +355,33 @@ impl<'a> Ambig<'a> {
                         'A' => {
                             pileup_struct.a.0 += 1;
                             if orientation == "+" {
-                                pileup_struct.a.1.0 += 1;
+                                pileup_struct.a.1 .0 += 1;
                             } else {
-                                pileup_struct.a.1.1 += 1;
+                                pileup_struct.a.1 .1 += 1;
                             }
                         }
                         'T' => {
                             pileup_struct.t.0 += 1;
                             if orientation == "+" {
-                                pileup_struct.t.1.0 += 1;
+                                pileup_struct.t.1 .0 += 1;
                             } else {
-                                pileup_struct.t.1.1 += 1;
+                                pileup_struct.t.1 .1 += 1;
                             }
                         }
                         'C' => {
                             pileup_struct.c.0 += 1;
                             if orientation == "+" {
-                                pileup_struct.c.1.0 += 1;
+                                pileup_struct.c.1 .0 += 1;
                             } else {
-                                pileup_struct.c.1.1 += 1;
+                                pileup_struct.c.1 .1 += 1;
                             }
                         }
                         'G' => {
                             pileup_struct.g.0 += 1;
                             if orientation == "+" {
-                                pileup_struct.g.1.0 += 1;
+                                pileup_struct.g.1 .0 += 1;
                             } else {
-                                pileup_struct.g.1.1 += 1;
+                                pileup_struct.g.1 .1 += 1;
                             }
                         }
                         _ => {}
@@ -399,9 +394,9 @@ impl<'a> Ambig<'a> {
                     } else {
                         pileup_struct.ins.0 += 1;
                         if orientation == "+" {
-                            pileup_struct.ins.1.0 += 1;
+                            pileup_struct.ins.1 .0 += 1;
                         } else {
-                            pileup_struct.ins.1.1 += 1;
+                            pileup_struct.ins.1 .1 += 1;
                         }
                     }
                 }
@@ -422,7 +417,8 @@ impl<'a> Ambig<'a> {
         let out_name = format!("{}_{}.bed", tid, self.output);
         let mut file = File::create(out_name).expect("Failed to create file");
         for (pos, _) in pos_to_plot {
-            writeln!(file, "{}\t{}\t{}\t{}", tid, pos, pos + 1, tid).expect("Failed to write to file");
+            writeln!(file, "{}\t{}\t{}\t{}", tid, pos, pos + 1, tid)
+                .expect("Failed to write to file");
         }
     }
 
@@ -469,34 +465,34 @@ mod tests {
                 &header_view,
                 b"read1\t3\tchr1\t5\t60\t9M1D\tchr1\t80\t10\tGGGGGGGGG\tFFFFFFFFF",
             )
-                .unwrap(),
+            .unwrap(),
             // Insertion of AA at end
             bam::Record::from_sam(
                 &header_view,
                 b"read2\t3\tchr1\t5\t60\t10M2I\tchr1\t80\t10\tGGGGGGGGGGAA\tFFFFFFFFFFFF",
             )
-                .unwrap(),
+            .unwrap(),
             // Insertion of AA at end
             bam::Record::from_sam(
                 &header_view,
                 b"read3\t3\tchr1\t5\t60\t10M2I\tchr1\t80\t10\tGGGGGGGGGGAA\tFFFFFFFFFFFF",
             )
-                .unwrap(),
+            .unwrap(),
             bam::Record::from_sam(
                 &header_view,
                 b"read4\t3\tchr1\t5\t60\t10M\tchr1\t80\t10\tAGGGGGGGGG\tFFFFFFFFFF",
             )
-                .unwrap(),
+            .unwrap(),
             bam::Record::from_sam(
                 &header_view,
                 b"read5\t3\tchr1\t5\t60\t10M\tchr1\t80\t10\tAGGGGGGGGG\tFFFFFFFFFF",
             )
-                .unwrap(),
+            .unwrap(),
             bam::Record::from_sam(
                 &header_view,
                 b"read6\t3\tchr1\t5\t60\t10M\tchr1\t80\t10\tAGGGGGGGGG\tFFFFFFFFFF",
             )
-                .unwrap(),
+            .unwrap(),
         ];
         for record in records {
             writer.write(&record).unwrap();
@@ -522,7 +518,6 @@ mod tests {
             1,
             1,
             1,
-            1,
             0.0,
             false,
         );
@@ -543,7 +538,6 @@ mod tests {
             0.2,
             false,
             "".to_string(),
-            1,
             1,
             1,
             1,
@@ -578,7 +572,6 @@ mod tests {
             1,
             1,
             1,
-            1,
             0.0,
             false,
         );
@@ -610,9 +603,8 @@ mod tests {
             1,
             1,
             1,
-            1,
             0.0,
-            false
+            false,
         );
         let pos_to_plot = ambig.produce_pileup(&mut bam);
         let expected_pos = BTreeMap::new();
