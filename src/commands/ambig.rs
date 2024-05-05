@@ -249,6 +249,9 @@ impl<'a> Ambig<'a> {
         // First find the major variant (base with most reads)
         let major_variant = pileup.get_major_variant();
 
+        // store the bases that failed the strand ratio check
+        let mut failed_bases = Vec::new();
+
         // check the strand ratio for each base
         let strand_ratios: BTreeMap<char, f64> = [
             ('A', pileup.get_strand_ratio('A')),
@@ -261,6 +264,7 @@ impl<'a> Ambig<'a> {
         .iter()
         .cloned()
         .collect();
+
         for (base, ratio) in strand_ratios {
             // if ratio == -1.0 then there were no reads for that base
             if ratio == -1.0 {
@@ -269,7 +273,7 @@ impl<'a> Ambig<'a> {
             if base != major_variant
                 && (ratio < self.strand_bias_threshold || ratio > 1.0 - self.strand_bias_threshold)
             {
-                return global_base_counts;
+                failed_bases.push(base);
             }
         }
 
@@ -284,7 +288,7 @@ impl<'a> Ambig<'a> {
         ]
         .iter()
         .cloned()
-        .filter(|(_, percent)| *percent > 0.0)
+        .filter(|(base, percent)| *percent > 0.0 && !failed_bases.contains(base))
         .map(|(base, percent)| (base, (percent * 10000.0).round() / 10000.0))
         .collect();
 
@@ -443,74 +447,16 @@ impl<'a> Ambig<'a> {
 
 #[cfg(test)]
 mod tests {
-    use rstest::*;
-    use rust_htslib::bam::IndexedReader;
-
     use super::*;
 
-    #[fixture]
-    fn testbam() -> IndexedReader {
-        let temp_path = "testing/ambig_test.bam";
-        let mut header = bam::Header::new();
-        header.push_record(
-            &bam::header::HeaderRecord::new(b"SQ")
-                .push_tag(b"SN", &"chr1")
-                .push_tag(b"LN", &1000),
-        );
-        let header_view = bam::HeaderView::from_header(&header);
-        let mut writer = bam::Writer::from_path(temp_path, &header, bam::Format::Bam).unwrap();
-        let records = vec![
-            // Deletion at end
-            bam::Record::from_sam(
-                &header_view,
-                b"read1\t3\tchr1\t5\t60\t9M1D\tchr1\t80\t10\tGGGGGGGGG\tFFFFFFFFF",
-            )
-            .unwrap(),
-            // Insertion of AA at end
-            bam::Record::from_sam(
-                &header_view,
-                b"read2\t3\tchr1\t5\t60\t10M2I\tchr1\t80\t10\tGGGGGGGGGGAA\tFFFFFFFFFFFF",
-            )
-            .unwrap(),
-            // Insertion of AA at end
-            bam::Record::from_sam(
-                &header_view,
-                b"read3\t3\tchr1\t5\t60\t10M2I\tchr1\t80\t10\tGGGGGGGGGGAA\tFFFFFFFFFFFF",
-            )
-            .unwrap(),
-            bam::Record::from_sam(
-                &header_view,
-                b"read4\t3\tchr1\t5\t60\t10M\tchr1\t80\t10\tAGGGGGGGGG\tFFFFFFFFFF",
-            )
-            .unwrap(),
-            bam::Record::from_sam(
-                &header_view,
-                b"read5\t3\tchr1\t5\t60\t10M\tchr1\t80\t10\tAGGGGGGGGG\tFFFFFFFFFF",
-            )
-            .unwrap(),
-            bam::Record::from_sam(
-                &header_view,
-                b"read6\t3\tchr1\t5\t60\t10M\tchr1\t80\t10\tAGGGGGGGGG\tFFFFFFFFFF",
-            )
-            .unwrap(),
-        ];
-        for record in records {
-            writer.write(&record).unwrap();
-        }
-        drop(writer);
-        bam::index::build(temp_path, None, bam::index::Type::Bai, 1).unwrap();
-
-        bam::IndexedReader::from_path(temp_path).unwrap()
-    }
-
-    #[rstest]
-    fn test_pileup_below_threshold(testbam: IndexedReader) {
-        let mut bam = testbam;
+    #[test]
+    fn test_pileup_below_threshold() {
+        let mut bam = bam::IndexedReader::from_path("test-data/ambig.bam").unwrap();
         let ambig = Ambig::new(
             "",
             Some("chr1"),
             Some(4),
-            Some(6),
+            Some(4),
             true,
             0.5,
             false,
@@ -521,19 +467,18 @@ mod tests {
             0.0,
             false,
         );
-        let pos_to_plot = ambig.produce_pileup(&mut bam);
-        let expected_pos = BTreeMap::new();
-        assert_eq!(pos_to_plot, expected_pos);
+        let pos = ambig.produce_pileup(&mut bam);
+        assert_eq!(pos.len(), 0);
     }
 
-    #[rstest]
-    fn test_pileup_above_threshold(testbam: IndexedReader) {
-        let mut bam = testbam;
+    #[test]
+    fn test_pileup_above_threshold() {
+        let mut bam = bam::IndexedReader::from_path("test-data/ambig.bam").unwrap();
         let ambig = Ambig::new(
             "",
             Some("chr1"),
-            Some(4),
-            Some(6),
+            Some(1),
+            Some(1),
             true,
             0.2,
             false,
@@ -544,29 +489,31 @@ mod tests {
             0.0,
             false,
         );
-        let pos_to_plot = ambig.produce_pileup(&mut bam);
+        let pos = ambig.produce_pileup(&mut bam);
 
         let expected_pos = {
-            let mut expected_bases = BTreeMap::new();
-            expected_bases.insert('A', 0.5);
-            expected_bases.insert('G', 0.5);
             let mut expected_pos = BTreeMap::new();
-            expected_pos.insert(5, expected_bases);
+            expected_pos.insert(1, {
+                let mut expected_bases = BTreeMap::new();
+                expected_bases.insert('A', 0.5833);
+                expected_bases.insert('G', 0.4167);
+                expected_bases
+            });
             expected_pos
         };
-        assert_eq!(pos_to_plot, expected_pos);
+        assert_eq!(pos, expected_pos);
     }
 
-    #[rstest]
-    fn test_pileup_indel(testbam: IndexedReader) {
-        let mut bam = testbam;
+    #[test]
+    fn test_pileup_deletion() {
+        let mut bam = bam::IndexedReader::from_path("test-data/ambig.bam").unwrap();
         let ambig = Ambig::new(
             "",
             Some("chr1"),
-            Some(13),
-            Some(15),
+            Some(5),
+            Some(5),
             false,
-            0.1,
+            0.2,
             false,
             "".to_string(),
             1,
@@ -575,29 +522,31 @@ mod tests {
             0.0,
             false,
         );
-        let pos_to_plot = ambig.produce_pileup(&mut bam);
+        let pos = ambig.produce_pileup(&mut bam);
+
         let expected_pos = {
-            let mut expected_bases = BTreeMap::new();
-            expected_bases.insert('-', 0.125);
-            expected_bases.insert('+', 0.25);
-            expected_bases.insert('G', 0.625);
             let mut expected_pos = BTreeMap::new();
-            expected_pos.insert(14, expected_bases);
+            expected_pos.insert(5, {
+                let mut expected_bases = BTreeMap::new();
+                expected_bases.insert('G', 0.75);
+                expected_bases.insert('-', 0.25);
+                expected_bases
+            });
             expected_pos
         };
-        assert_eq!(pos_to_plot, expected_pos);
+        assert_eq!(pos, expected_pos);
     }
 
-    #[rstest]
-    fn test_pileup_no_indels(testbam: IndexedReader) {
-        let mut bam = testbam;
+    #[test]
+    fn test_pileup_insertion() {
+        let mut bam = bam::IndexedReader::from_path("test-data/ambig.bam").unwrap();
         let ambig = Ambig::new(
             "",
             Some("chr1"),
-            Some(13),
-            Some(15),
-            true,
-            0.1,
+            Some(7),
+            Some(8),
+            false,
+            0.2,
             false,
             "".to_string(),
             1,
@@ -606,46 +555,94 @@ mod tests {
             0.0,
             false,
         );
-        let pos_to_plot = ambig.produce_pileup(&mut bam);
-        let expected_pos = BTreeMap::new();
-        assert_eq!(pos_to_plot, expected_pos);
+        let pos = ambig.produce_pileup(&mut bam);
+
+        let expected_pos = {
+            let mut expected_pos = BTreeMap::new();
+            expected_pos.insert(7, {
+                let mut expected_bases = BTreeMap::new();
+                expected_bases.insert('G', 0.75);
+                expected_bases.insert('+', 0.25);
+                expected_bases
+            });
+            expected_pos
+        };
+        assert_eq!(pos, expected_pos);
     }
 
-    // #[rstest]
-    // fn test_process_pileup() {
-    //     let base_counts = {
-    //         let mut base_counts = HashMap::new();
-    //         base_counts.insert('A', 3);
-    //         base_counts.insert('C', 3);
-    //         base_counts.insert('G', 4);
-    //         base_counts.insert('T', 0);
-    //         base_counts
-    //     };
-    //     let ambig = Ambig::new(
-    //         "",
-    //         Some("chr1"),
-    //         Some(4),
-    //         Some(6),
-    //         true,
-    //         0.1,
-    //         false,
-    //         "".to_string(),
-    //         1,
-    //         1,
-    //         1,
-    //         1,
-    //     );
-    //     let pos_to_plot = ambig.filter_base_counts(1, base_counts);
-    //     let expected_pos = {
-    //         let mut expected_bases = BTreeMap::new();
-    //         expected_bases.insert('A', 0.3);
-    //         expected_bases.insert('C', 0.3);
-    //         expected_bases.insert('G', 0.4);
-    //         expected_bases.insert('T', 0.0);
-    //         let mut expected_pos = BTreeMap::new();
-    //         expected_pos.insert(2, expected_bases);
-    //         expected_pos
-    //     };
-    //     assert_eq!(pos_to_plot, expected_pos);
-    // }
+    #[test]
+    fn test_pileup_low_base_quality() {
+        let mut bam = bam::IndexedReader::from_path("test-data/ambig.bam").unwrap();
+        let ambig = Ambig::new(
+            "",
+            Some("chr1"),
+            Some(2),
+            Some(2),
+            false,
+            0.2,
+            false,
+            "".to_string(),
+            10,
+            1,
+            1,
+            0.0,
+            false,
+        );
+        let pos = ambig.produce_pileup(&mut bam);
+        assert_eq!(pos.len(), 0);
+    }
+
+    #[test]
+    fn test_pileup_low_map_quality() {
+        let mut bam = bam::IndexedReader::from_path("test-data/ambig.bam").unwrap();
+        let ambig = Ambig::new(
+            "",
+            Some("chr1"),
+            Some(3),
+            Some(3),
+            false,
+            0.2,
+            false,
+            "".to_string(),
+            1,
+            20,
+            1,
+            0.0,
+            false,
+        );
+        let pos = ambig.produce_pileup(&mut bam);
+        assert_eq!(pos.len(), 0);
+    }
+
+    #[test]
+    fn test_pileup_strand_bias() {
+        let mut bam = bam::IndexedReader::from_path("test-data/ambig.bam").unwrap();
+        let ambig = Ambig::new(
+            "",
+            Some("chr1"),
+            Some(9),
+            Some(9),
+            false,
+            0.2,
+            false,
+            "".to_string(),
+            1,
+            1,
+            1,
+            0.1,
+            false,
+        );
+        let pos = ambig.produce_pileup(&mut bam);
+        let expected_pos = {
+            let mut expected_pos = BTreeMap::new();
+            expected_pos.insert(9, {
+                let mut expected_bases = BTreeMap::new();
+                expected_bases.insert('C', 0.4167);
+                expected_bases.insert('G', 0.3333);
+                expected_bases
+            });
+            expected_pos
+        };
+        assert_eq!(pos, expected_pos);
+    }
 }
