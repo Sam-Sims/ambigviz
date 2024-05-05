@@ -95,11 +95,6 @@ like ONT.
 
 This option will set the minimum total depth for a position to be included in the plot. Default is 100
 
-#### Minor depth.
-
-`-d, --minor-depth <minor-depth>`
-
-This option will set the minimum depth of the minor allele for a position to be included in the plot. Default is 20
 
 #### Base quality
 
@@ -135,3 +130,4 @@ This option will output the identified ambiguous positions to a bed file. The de
 
 By default the proportion of each base for each position are included as text annotations. This option will exclude
 them.
+
